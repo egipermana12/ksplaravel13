@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Simpanan;
+use App\Models\Akun;
 use App\Services\AccountingService;
 
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,8 @@ use Inertia\Response;
 class SimpananController extends Controller
 {
     protected $accounting;
+    protected $kd_akun_piutang = '201';
+    protected $kd_akun_kas = '101';
 
     // Dependency Injection
     public function __construct(AccountingService $accounting)
@@ -88,7 +91,10 @@ class SimpananController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('Simpanan/Add');
+        return Inertia::render('Simpanan/Add', [
+            'akunPiutang' => Akun::where('kode_akun', $this->kd_akun_piutang)->firstOrFail(),
+            'akunKas' => Akun::where('kode_akun', $this->kd_akun_kas)->firstOrFail(),
+        ]);
     }
 
     /**
@@ -97,23 +103,19 @@ class SimpananController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'id_anggota' => ['required', 'exists:anggotas,id'],
-            'nama_anggota' => ['required'],
-            'nik' => ['required'],
-            'jenis_simpanan' => ['required', Rule::in(['wajib', 'pokok', 'sukarela'])],
-            'nominal' => ['required', 'numeric', 'min:1000'],
-            'bukti_setor' => ['required'], // Maksimal 2MB
-            'tanggal_setor' => ['required', 'date'],
-        ]);
+        $validated = $this->validatedData($request);
 
         try {
             $result = DB::transaction(function () use ($validated) {
                 // 1. Simpan Data Simpanan
                 $simpanan = Simpanan::create($validated);
 
+                // AMBIL DATA AKUN DARI VALIDATED
+                $akunPiutangId = $validated['akunPiutang'];
+                $akunKasId = $validated['akunKas'];
+
                 // 2. Panggil Service Akuntansi
-                $jurnal = $this->accounting->createSimpanan($simpanan);
+                $jurnal = $this->accounting->createSimpanan($simpanan, $akunPiutangId, $akunKasId);
 
                 return compact('simpanan', 'jurnal');
             });
@@ -125,5 +127,20 @@ class SimpananController extends Controller
                 'transaction' => 'Gagal mencatat transaksi: ' . $e->getMessage()
             ])->withInput();
         }
+    }
+
+    public function validatedData(Request $request, ?Simpanan $simpanan = null): array
+    {
+        return $request->validate([
+            'id_anggota' => ['required', 'exists:anggotas,id'],
+            'nama_anggota' => ['required'],
+            'nik' => ['required'],
+            'jenis_simpanan' => ['required', Rule::in(['wajib', 'pokok', 'sukarela'])],
+            'akunPiutang' => ['required', 'exists:akuns,id'],
+            'akunKas' => ['required', 'exists:akuns,id'],
+            'nominal' => ['required', 'numeric', 'min:1000'],
+            'bukti_setor' => ['required'],
+            'tanggal_setor' => ['required', 'date'],
+        ]);
     }
 }

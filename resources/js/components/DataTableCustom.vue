@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 
 // 1. Definisikan Interface untuk Type Safety
@@ -40,6 +40,7 @@ const loading = ref<boolean>(false);
 
 async function loadData(): Promise<void> {
     loading.value = true;
+
     try {
         const url =
             `${props.endpoint}?page=${page.value}` +
@@ -66,6 +67,7 @@ function toggleSort(field: string): void {
         sort.value = field;
         direction.value = 'asc';
     }
+
     loadData();
 }
 

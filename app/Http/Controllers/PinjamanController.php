@@ -15,6 +15,9 @@ use Inertia\Response;
 
 class PinjamanController extends Controller
 {
+    protected $kd_akun_piutang = '103';
+    protected $kd_akun_kas = '101';
+
     public function __construct(
         protected AccountingService $accounting,
     ) {}
@@ -27,7 +30,7 @@ class PinjamanController extends Controller
             ->latest()
             ->paginate(10)
             ->withQueryString()
-            ->through(fn (Pinjaman $pinjaman): array => [
+            ->through(fn(Pinjaman $pinjaman): array => [
                 'id' => $pinjaman->id,
                 'id_anggota' => $pinjaman->id_anggota,
                 'nik' => $pinjaman->anggota?->nik,
@@ -51,8 +54,8 @@ class PinjamanController extends Controller
     public function create(): Response
     {
         return Inertia::render('Pinjaman/Add', [
-            'akunPiutang' => Akun::where('kode_akun', '103')->firstOrFail(),
-            'akunKas' => Akun::where('kode_akun', '101')->firstOrFail(),
+            'akunPiutang' => Akun::where('kode_akun', $this->kd_akun_piutang)->firstOrFail(),
+            'akunKas' => Akun::where('kode_akun', $this->kd_akun_kas)->firstOrFail(),
         ]);
     }
 
@@ -88,7 +91,7 @@ class PinjamanController extends Controller
         } catch (\Exception $e) {
             return back()->withInput()->with('toast', [
                 'type' => 'error',
-                'message' => 'Gagal simpan: '.$e->getMessage(),
+                'message' => 'Gagal simpan: ' . $e->getMessage(),
             ]);
         }
     }
@@ -99,7 +102,7 @@ class PinjamanController extends Controller
             'tanggal_disetujui' => [
                 'nullable',
                 'date',
-                'after_or_equal:'.$pinjaman->tanggal_pengajuan->toDateString(),
+                'after_or_equal:' . $pinjaman->tanggal_pengajuan->toDateString(),
             ],
         ]);
 
@@ -123,8 +126,8 @@ class PinjamanController extends Controller
 
                 app(PinjamanObserver::class)->generateJadwal($pinjaman);
 
-                $akunPiutang = Akun::where('kode_akun', '103')->firstOrFail();
-                $akunKas = Akun::where('kode_akun', '101')->firstOrFail();
+                $akunPiutang = Akun::where('kode_akun', $this->kd_akun_piutang)->firstOrFail();
+                $akunKas = Akun::where('kode_akun', $this->kd_akun_kas)->firstOrFail();
 
                 $this->accounting->createPinjamanJurnal(
                     $pinjaman,
@@ -140,7 +143,7 @@ class PinjamanController extends Controller
         } catch (\Exception $e) {
             return back()->with('toast', [
                 'type' => 'error',
-                'message' => 'Gagal menyetujui pinjaman: '.$e->getMessage(),
+                'message' => 'Gagal menyetujui pinjaman: ' . $e->getMessage(),
             ]);
         }
     }

@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid, Users, Notebook } from 'lucide-vue-next';
+import {
+    Banknote,
+    BookUp,
+    BookDown,
+    LayoutGrid,
+    Notebook,
+    ReceiptText,
+    Users,
+} from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -31,12 +39,69 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Simpanan',
         href: '/simpanan',
-        icon: LayoutGrid,
+        icon: BookUp,
     },
     {
         title: 'Pinjaman',
         href: '/pinjaman',
-        icon: LayoutGrid,
+        icon: BookDown,
+    },
+    {
+        title: 'Pembayaran',
+        href: '/pembayaran-pinjaman',
+        icon: Banknote,
+        children: [
+            {
+                title: 'Daftar Pembayaran',
+                href: '/pembayaran-pinjaman',
+            },
+            {
+                title: 'Tambah Pembayaran',
+                href: '/pembayaran-pinjaman/create',
+            },
+            {
+                title: 'Jadwal',
+                href: '/pembayaran-pinjaman/jadwal',
+            },
+        ],
+    },
+    {
+        title: 'Pendapatan',
+        href: '/pendapatan-transaksi',
+        icon: ReceiptText,
+        children: [
+            {
+                title: 'Transaksi Pendapatan',
+                href: '/pendapatan-transaksi',
+            },
+            {
+                title: 'Tambah Pendapatan',
+                href: '/pendapatan-transaksi/create',
+            },
+            {
+                title: 'Kategori Pendapatan',
+                href: '/pendapatan-kategori',
+            },
+        ],
+    },
+    {
+        title: 'Pengeluaran',
+        href: '/pengeluaran-transaksi',
+        icon: ReceiptText,
+        children: [
+            {
+                title: 'Transaksi Pengeluaran',
+                href: '/pengeluaran-transaksi',
+            },
+            {
+                title: 'Tambah Pengeluaran',
+                href: '/pengeluaran-transaksi/create',
+            },
+            {
+                title: 'Kategori Pengeluaran',
+                href: '/pengeluaran-kategori',
+            },
+        ],
     },
     {
         title: 'Jurnals',
@@ -45,18 +110,7 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+const footerNavItems: NavItem[] = [];
 </script>
 
 <template>
@@ -66,7 +120,7 @@ const footerNavItems: NavItem[] = [
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
                         <Link :href="dashboard()">
-                        <AppLogo />
+                            <AppLogo />
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>

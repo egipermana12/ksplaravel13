@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Observers\PinjamanObserver;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -28,7 +27,7 @@ class Pinjaman extends Model
     {
         return [
             'tanggal_pengajuan' => 'date',
-            'tanggal_disetujui' => 'date'
+            'tanggal_disetujui' => 'date',
         ];
     }
 
@@ -47,5 +46,10 @@ class Pinjaman extends Model
     public function jadwal(): HasMany
     {
         return $this->hasMany(PinjamanJadwal::class, 'id_pinjaman');
+    }
+
+    public function pembayaran(): HasMany
+    {
+        return $this->hasMany(PembayaranPinjaman::class, 'id_pinjaman');
     }
 }

@@ -2,32 +2,28 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\DB;
-use App\Models\Jurnal;
-use App\Models\JurnalDetail;
 use App\Models\Akun;
+use App\Models\Jurnal;
+use Illuminate\Support\Facades\DB;
 
 class AccountingService
 {
-    public function createSimpanan($simpanan)
-    {
-        $kodeKas = '101';
-        $kodeSimpanan = '201';
-
-        $akunKas = Akun::where('kode_akun', $kodeKas)->firstOrFail();
-        $akunSimpanan = Akun::where('kode_akun', $kodeSimpanan)->firstOrFail();
-
+    public function createSimpanan(
+        $simpanan,
+        int $akunPiutangId,
+        int $akunKasId
+    ) {
         // 2. Siapkan data detail jurnal
         $details = [
             [
-                'id_akun' => $akunKas->id,
-                'debit'   => $simpanan->nominal,
-                'kredit'  => 0,
+                'id_akun' => $akunKasId,
+                'debit' => $simpanan->nominal,
+                'kredit' => 0,
             ],
             [
-                'id_akun' => $akunSimpanan->id,
-                'debit'   => 0,
-                'kredit'  => $simpanan->nominal,
+                'id_akun' => $akunPiutangId,
+                'debit' => 0,
+                'kredit' => $simpanan->nominal,
             ],
         ];
 
@@ -49,13 +45,13 @@ class AccountingService
         $details = [
             [
                 'id_akun' => $akunPiutangId,
-                'debit'   => $pinjaman->jumlah_pinjaman,
-                'kredit'  => 0,
+                'debit' => $pinjaman->jumlah_pinjaman,
+                'kredit' => 0,
             ],
             [
                 'id_akun' => $akunKasId,
-                'debit'   => 0,
-                'kredit'  => $pinjaman->jumlah_pinjaman,
+                'debit' => 0,
+                'kredit' => $pinjaman->jumlah_pinjaman,
             ],
         ];
 
@@ -67,10 +63,79 @@ class AccountingService
         );
     }
 
+    public function createPembayaranPinjamanJurnal(
+        $pembayaran,
+        int $akunKasId,
+        int $akunPiutangPinjamanId,
+        int $akunPiutangBungaId
+    ) {
+        $jadwal = $pembayaran->jadwal;
+
+        $details = [
+            [
+                'id_akun' => $akunKasId,
+                'debit' => $pembayaran->nominal_bayar,
+                'kredit' => 0,
+            ],
+            [
+                'id_akun' => $akunPiutangPinjamanId,
+                'debit' => 0,
+                'kredit' => $jadwal->angsuran_pokok,
+            ],
+            [
+                'id_akun' => $akunPiutangBungaId,
+                'debit' => 0,
+                'kredit' => $jadwal->angsuran_bunga,
+            ],
+        ];
+
+        if ((float) $pembayaran->denda > 0) {
+            $akunPendapatanDenda = Akun::where('kode_akun', '403')->firstOrFail();
+
+            $details[] = [
+                'id_akun' => $akunPendapatanDenda->id,
+                'debit' => 0,
+                'kredit' => $pembayaran->denda,
+            ];
+        }
+
+        return $this->createJurnal(
+            $pembayaran->tanggal_bayar,
+            'pembayaran_pinjaman',
+            $pembayaran->id,
+            $details
+        );
+    }
+
+    public function createPendapatanTransaksiJurnal($pendapatanTransaksi)
+    {
+        $akunKas = Akun::where('kode_akun', '101')->firstOrFail();
+        $akunPendapatan = Akun::where('kode_akun', '402')->firstOrFail();
+
+        $details = [
+            [
+                'id_akun' => $akunKas->id,
+                'debit' => $pendapatanTransaksi->nominal,
+                'kredit' => 0,
+            ],
+            [
+                'id_akun' => $akunPendapatan->id,
+                'debit' => 0,
+                'kredit' => $pendapatanTransaksi->nominal,
+            ],
+        ];
+
+        return $this->createJurnal(
+            $pendapatanTransaksi->tanggal_transaksi,
+            'pendapatan_transaksi',
+            $pendapatanTransaksi->id,
+            $details
+        );
+    }
+
     /**
      * Fungsi generik untuk membuat jurnal (Double Entry)
      */
-
     public function createJurnal($tanggal, $refType, $refId, array $details)
     {
         return DB::transaction(function () use ($tanggal, $refType, $refId, $details) {
@@ -84,18 +149,18 @@ class AccountingService
 
             // Simpan Header Jurnal
             $jurnal = Jurnal::create([
-                'tanggal'    => $tanggal,
-                'ref_type_transaksi'   => $refType,
-                'refid_transaksi'     => $refId,
+                'tanggal' => $tanggal,
+                'ref_type_transaksi' => $refType,
+                'refid_transaksi' => $refId,
             ]);
 
             // Simpan Detail Jurnal (Mass Insert untuk efisiensi)
             $jurnalDetails = collect($details)->map(function ($detail) use ($jurnal) {
                 return [
-                    'id_jurnal'  => $jurnal->id,
-                    'id_akun'    => $detail['id_akun'],
-                    'debit'      => $detail['debit'],
-                    'kredit'     => $detail['kredit'],
+                    'id_jurnal' => $jurnal->id,
+                    'id_akun' => $detail['id_akun'],
+                    'debit' => $detail['debit'],
+                    'kredit' => $detail['kredit'],
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
